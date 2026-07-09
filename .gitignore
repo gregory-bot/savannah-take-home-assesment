@@ -69,3 +69,9 @@ dmypy.json
 
 # Logs
 *.log
+
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
