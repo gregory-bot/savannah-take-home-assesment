@@ -163,9 +163,9 @@ The frontend source code is maintained in a separate repository:
 > The screenshots below illustrate the key views of the deployed frontend at
 > https://savannah-clinic-test.netlify.app.
 
-#### 1. Home Page: Doctor Directory
+#### 1. Home Page
 
-![Home Page](docs/Screenshot 2026-07-11 121459.png)
+![Home Page](docs/home.png)
 
 The landing page lists all registered doctors with their specializations and
 working hours.
