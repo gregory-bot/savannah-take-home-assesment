@@ -58,8 +58,8 @@ jobs:
           echo "Response:"
           cat /tmp/response.txt | python3 -m json.tool 2>/dev/null || cat /tmp/response.txt
           
-          if [ "$http_code" = "201" ] || [ "$http_code" = "200" ]; then
-            echo "✅ Deploy triggered successfully!"
+          if [ "$http_code" = "200" ] || [ "$http_code" = "201" ] || [ "$http_code" = "202" ]; then
+            echo "✅ Deploy triggered successfully! (HTTP $http_code)"
             exit 0
           elif [ "$http_code" = "401" ]; then
             echo "❌ Unauthorized - Check RENDER_API_KEY secret"
