@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str
+    database_url: str = "sqlite:///./clinic.db"  # Default for dev/testing
     app_name: str = "HealthLink Clinic Booking API"
     debug: bool = False
 
