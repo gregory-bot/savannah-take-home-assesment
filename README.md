@@ -1,6 +1,6 @@
-# HealthLink Clinic Booking API
+# Savannah Clinic API
 
-A REST API for a clinic appointment booking system, built with **Python 3.12 + FastAPI + PostgreSQL**.
+A REST API for a clinic appointment booking system, with **Python 3.12 + FastAPI + PostgreSQL**.
 
 > Submitted for the Savannah Informatics Backend Developer Take-Home Assessment.
 
@@ -94,7 +94,7 @@ Noted trade-off: without auth, any caller can book on behalf of any patient ID.
 In production this would be addressed with JWT Bearer tokens (FastAPI's OAuth2
 support makes this straightforward to retrofit).
 
-### What happens if a doctor's working hours change?
+### What happens if a doctor's working hours change
 
 Existing `Appointment` rows are unaffected — they store the full `slot_time` and
 are not derived from the doctor's current hours. The availability endpoint will
@@ -140,7 +140,7 @@ A booking is rejected with `409 Conflict` if:
 
 ## Frontend
 
-A companion frontend application is deployed at
+A frontend application is deployed at
 **https://savannah-clinic-test.netlify.app**.
 
 The frontend provides a user-friendly interface for the clinic booking system,
@@ -155,7 +155,7 @@ allowing patients to:
 ### Frontend Repository
 
 The frontend source code is maintained in a separate repository:
-**[savannah-take-home-assesment](https://github.com/gregory-bot/savannah-take-home-assesment)**
+**[savannah-take-home-assesment](https://github.com/gregory-bot/healthlink-scheduler)**
 
 ### Frontend Screenshots
 
@@ -167,7 +167,7 @@ The frontend source code is maintained in a separate repository:
 ![Home Page — Doctor Directory](docs/screenshots/homepage.png)
 
 The landing page lists all registered doctors with their specializations and
-working hours. Patients can select a doctor to view their availability.
+working hours.
 
 #### 2. Doctor Booking — Slot Selection
 
@@ -266,7 +266,6 @@ psql -U clinic -d clinic_db -f sql/init.sql
 ### Deployed URL
 
 > **https://healthlink-clinic-api.onrender.com**
-> *(Replace with your actual Render/Railway/Fly.io URL)*
 
 Swagger UI: `https://healthlink-clinic-api.onrender.com/api/docs`
 
@@ -313,8 +312,7 @@ production uses.
 
 ### 1. What did I use AI for?
 
-- **Section 1 (Design):** Used AI to cross-check my concurrency reasoning. I
-  described the TOCTOU race and asked whether my two-layer approach (SELECT FOR
+- **Section 1 (Design):** I described the TOCTOU race and asked whether my two-layer approach (SELECT FOR
   UPDATE + UNIQUE constraint) was sufficient. The AI confirmed the pattern and
   pointed out that SQLite does not support `FOR UPDATE`, which led me to the
   dialect-aware `_supports_for_update()` helper.
@@ -323,8 +321,8 @@ production uses.
   scaffolding, FastAPI router structure). The core booking logic, slot validation,
   and concurrency handling were written by hand.
 
-- **Section 3 (CI/CD):** Used AI to generate the initial GitHub Actions workflow
-  YAML and the Render deploy API call syntax.
+- **Section 3 (CI/CD):** generated the initial GitHub Actions workflow
+  YAML and the Render deploy API call syntax by hand.
 
 - **Section 4 (Reflection):** Written entirely by hand.
 
