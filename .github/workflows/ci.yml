@@ -10,7 +10,6 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -32,8 +31,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run tests with coverage
-        run: |
-          pytest tests/ -v --cov=app --cov-report=term-missing
+        run: pytest tests/ -v --cov=app --cov-report=term-missing
 
   deploy:
     name: Deploy
@@ -47,47 +45,29 @@ jobs:
           API_KEY: ${{ secrets.RENDER_API_KEY }}
           SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          echo "Triggering deploy for service: ${SERVICE_ID}"
+          echo "🚀 Triggering deploy for service: ${SERVICE_ID}"
           
-          # Write JSON to a temp file to avoid shell escaping issues
-          printf '{"clearCache": false}' > /tmp/payload.json
-          
-          response=$(curl -s -w "\n%{http_code}" -X POST \
+          http_code=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
+            -X POST \
             "https://api.render.com/v1/services/${SERVICE_ID}/deploys" \
             -H "Authorization: Bearer ${API_KEY}" \
             -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
-            -d @/tmp/payload.json)
+            -d '{}')
           
-          status_code=$(echo "$response" | tail -1)
-          body=$(echo "$response" | head -n -1)
+          echo "HTTP Status: $http_code"
+          echo "Response:"
+          cat /tmp/response.txt | python3 -m json.tool 2>/dev/null || cat /tmp/response.txt
           
-          echo "HTTP Status: $status_code"
-          
-          if [ -n "$body" ]; then
-            echo "Response:"
-            echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
+          if [ "$http_code" = "201" ] || [ "$http_code" = "200" ]; then
+            echo "✅ Deploy triggered successfully!"
+            exit 0
+          elif [ "$http_code" = "401" ]; then
+            echo "❌ Unauthorized - Check RENDER_API_KEY secret"
+            exit 1
+          elif [ "$http_code" = "404" ]; then
+            echo "❌ Service not found - Check RENDER_SERVICE_ID secret"
+            exit 1
+          else
+            echo "❌ Deploy failed with status: $http_code"
+            exit 1
           fi
-          
-          case "$status_code" in
-            200|201)
-              echo "✅ Deploy triggered successfully!"
-              ;;
-            401)
-              echo "❌ Invalid API key. Update RENDER_API_KEY in GitHub secrets."
-              exit 1
-              ;;
-            404)
-              echo "❌ Service not found. Update RENDER_SERVICE_ID in GitHub secrets."
-              echo "   Expected: srv-d97tottaeets73928cd0"
-              exit 1
-              ;;
-            400)
-              echo "❌ Bad request. Check service configuration on Render."
-              exit 1
-              ;;
-            *)
-              echo "❌ Failed with status: $status_code"
-              exit 1
-              ;;
-          esac
