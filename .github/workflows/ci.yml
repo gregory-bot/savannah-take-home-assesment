@@ -42,14 +42,75 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: Trigger Render deploy
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+      - name: Verify secrets
         run: |
-          curl -sf -X POST \
-            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
-            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+          if [ -z "$API_KEY" ]; then
+            echo "ERROR: RENDER_API_KEY secret is empty or not set"
+            exit 1
+          fi
+          if [ -z "$SERVICE_ID" ]; then
+            echo "ERROR: RENDER_SERVICE_ID secret is empty or not set"
+            exit 1
+          fi
+          echo "Secrets look good"
+          echo "Service ID: $SERVICE_ID (length: ${#SERVICE_ID})"
+          echo "API Key length: ${#API_KEY}"
+        env:
+          API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+      - name: Deploy to Render
+        env:
+          API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          echo "Triggering deploy for service: ${SERVICE_ID}"
+          
+          # Send request and capture both response body and HTTP status
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.render.com/v1/services/${SERVICE_ID}/deploys" \
+            -H "Authorization: Bearer ${API_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{"clearCache": false}'
-          echo "Deploy triggered successfully."
+            -H "Accept: application/json" \
+            -d '{"clearCache": false}')
+          
+          # Extract status code (last line)
+          status_code=$(echo "$response" | tail -1)
+          # Extract body (everything except last line)
+          body=$(echo "$response" | head -n -1)
+          
+          echo "----------------------------------------"
+          echo "HTTP Status: $status_code"
+          echo "----------------------------------------"
+          
+          # Pretty print response if it's JSON
+          if [ -n "$body" ]; then
+            echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
+          fi
+          echo "----------------------------------------"
+          
+          # Check result
+          case "$status_code" in
+            200|201)
+              echo "✅ Deploy triggered successfully!"
+              ;;
+            401)
+              echo "❌ ERROR: Invalid API key. Please update RENDER_API_KEY secret."
+              echo "   Generate a new key at: https://dashboard.render.com/u/settings#api-keys"
+              exit 1
+              ;;
+            404)
+              echo "❌ ERROR: Service not found. Please update RENDER_SERVICE_ID secret."
+              echo "   Your service ID should be: srv-xxxxxxxxxxxx"
+              echo "   Find it at: https://dashboard.render.com"
+              exit 1
+              ;;
+            400)
+              echo "❌ ERROR: Bad request. The service may already be deploying."
+              exit 1
+              ;;
+            *)
+              echo "❌ ERROR: Unexpected status code: $status_code"
+              exit 1
+              ;;
+          esac
