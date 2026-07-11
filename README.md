@@ -165,7 +165,7 @@ The frontend source code is maintained in a separate repository:
 
 #### 1. Home Page: Doctor Directory
 
-![Home Page: Doctor Directory](docs/Screenshot 2026-07-11 121459.png)
+![Home Page](docs/Screenshot 2026-07-11 121459.png)
 
 The landing page lists all registered doctors with their specializations and
 working hours.
