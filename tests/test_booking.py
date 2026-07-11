@@ -77,7 +77,7 @@ class TestBookAppointment:
         patient = make_patient(db_session)
         past_slot = datetime.now(tz=timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0) - timedelta(days=1)
 
-        with pytest.raises(ValidationError, match="past"):
+        with pytest.raises(ValidationError, match="future"):
             booking.book_appointment(db_session, doctor.id, patient.id, past_slot)
 
     def test_cannot_book_within_one_hour_of_now(self, db_session):
@@ -102,7 +102,7 @@ class TestBookAppointment:
         patient = make_patient(db_session)
         bad_slot = datetime.now(tz=timezone.utc).replace(hour=10, minute=15, second=0, microsecond=0) + timedelta(days=1)
 
-        with pytest.raises(ValidationError, match="30-minute"):
+        with pytest.raises(ValidationError, match="30-minute boundary"):
             booking.book_appointment(db_session, doctor.id, patient.id, bad_slot)
 
     def test_doctor_not_found(self, db_session):
@@ -185,6 +185,7 @@ class TestCancelAppointment:
         booking.cancel_appointment(db_session, appt.id, "Changed mind")
         db_session.commit()
 
+        # This should work because the cancelled appointment doesn't block the slot
         new_appt = booking.book_appointment(db_session, doctor.id, patient2.id, slot)
         db_session.commit()
         assert new_appt.status == AppointmentStatus.booked

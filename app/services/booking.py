@@ -32,6 +32,22 @@ def _lock_doctor(db: Session, doctor_id: int):
     return doctor
 
 
+def get_doctor_or_404(db: Session, doctor_id: int) -> Doctor:
+    """Get a doctor by ID or raise 404."""
+    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
+    if not doctor:
+        raise NotFoundError("Doctor not found")
+    return doctor
+
+
+def get_patient_or_404(db: Session, patient_id: int) -> Patient:
+    """Get a patient by ID or raise 404."""
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise NotFoundError("Patient not found")
+    return patient
+
+
 def _validate_slot_time(slot_time: datetime, doctor: Doctor):
     """Validate slot_time against business rules."""
     now = datetime.now(tz=timezone.utc)
@@ -43,7 +59,7 @@ def _validate_slot_time(slot_time: datetime, doctor: Doctor):
         raise ValidationError("Appointment must be booked at least 1 hour in advance")
     
     if slot_time.minute not in (0, 30):
-        raise ValidationError("slot_time must fall on a 30‑minute boundary (XX:00 or XX:30)")
+        raise ValidationError("slot_time must fall on a 30-minute boundary (XX:00 or XX:30)")
     
     # Check working hours
     slot_time_only = slot_time.time()
@@ -70,7 +86,7 @@ def book_appointment(db: Session, doctor_id: int, patient_id: int, slot_time: da
     # Validate slot time
     _validate_slot_time(slot_time, doctor)
     
-    # Check if slot is already booked
+    # Check if slot is already booked (only active bookings)
     existing = db.query(Appointment).filter(
         Appointment.doctor_id == doctor_id,
         Appointment.slot_time == slot_time,
@@ -136,7 +152,7 @@ def reschedule_appointment(db: Session, appointment_id: int, new_slot_time: date
     # Validate new slot time
     _validate_slot_time(new_slot_time, doctor)
     
-    # Check if new slot is available (excluding current appointment)
+    # Check if new slot is available (excluding current appointment, only active bookings)
     existing = db.query(Appointment).filter(
         Appointment.doctor_id == appointment.doctor_id,
         Appointment.slot_time == new_slot_time,
@@ -174,7 +190,7 @@ def get_availability(db: Session, doctor_id: int, date_str: str) -> list[dict]:
     end_time = datetime.combine(date, doctor.work_end, tzinfo=timezone.utc)
     
     while current_time < end_time:
-        # Check if slot is booked
+        # Check if slot is booked (only active bookings)
         booked = db.query(Appointment).filter(
             Appointment.doctor_id == doctor_id,
             Appointment.slot_time == current_time,
