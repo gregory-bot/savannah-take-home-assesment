@@ -96,6 +96,17 @@ def book_appointment(db: Session, doctor_id: int, patient_id: int, slot_time: da
     if existing:
         raise SlotUnavailableError("This slot is already booked")
     
+    # Check if there's a cancelled appointment for this slot and delete it
+    cancelled = db.query(Appointment).filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.slot_time == slot_time,
+        Appointment.status == AppointmentStatus.cancelled
+    ).first()
+    
+    if cancelled:
+        db.delete(cancelled)
+        db.flush()
+    
     # Create appointment
     appointment = Appointment(
         doctor_id=doctor_id,
@@ -143,7 +154,8 @@ def reschedule_appointment(db: Session, appointment_id: int, new_slot_time: date
     if appointment.status == AppointmentStatus.cancelled:
         raise ConflictError("Cannot reschedule a cancelled appointment")
     
-    if appointment.slot_time == new_slot_time:
+    # Check if new slot is the same as current slot
+    if appointment.slot_time.replace(tzinfo=timezone.utc) == new_slot_time:
         raise ValidationError("New slot time is the same as the current slot time")
     
     # Lock doctor row
@@ -162,6 +174,18 @@ def reschedule_appointment(db: Session, appointment_id: int, new_slot_time: date
     
     if existing:
         raise SlotUnavailableError("The new slot is already booked")
+    
+    # Check if there's a cancelled appointment for this new slot and delete it
+    cancelled = db.query(Appointment).filter(
+        Appointment.doctor_id == appointment.doctor_id,
+        Appointment.slot_time == new_slot_time,
+        Appointment.status == AppointmentStatus.cancelled,
+        Appointment.id != appointment_id
+    ).first()
+    
+    if cancelled:
+        db.delete(cancelled)
+        db.flush()
     
     # Update appointment
     appointment.slot_time = new_slot_time
